@@ -20,7 +20,7 @@ main{max-width:480px;margin:0 auto;padding:20px 16px 48px}
 h1{font:900 clamp(34px,10vw,48px)/1.02 Archivo,Impact,sans-serif;margin:8px 0 6px;text-wrap:balance;letter-spacing:-.5px}
 h1 span{color:var(--gold)}
 .sub{color:var(--mut);margin:0 0 18px;font-size:17px}
-.hero{display:grid;place-items:center;height:300px;position:relative}
+.hero{-webkit-tap-highlight-color:transparent;user-select:none;display:grid;place-items:center;height:300px;position:relative}
 .hero svg{height:100%;filter:drop-shadow(0 18px 40px rgba(226,184,74,.35))}
 @media(prefers-reduced-motion:no-preference){.hero svg{animation:float 3.2s ease-in-out infinite}}
 @keyframes float{50%{transform:translateY(-10px) rotate(2deg)}}
@@ -68,9 +68,10 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
     <p class="sub">No és un descompte. És sort. Obre la càmera i descobreix quina copa et toca.</p>
     <div class="hero" id="hero"></div>
     <button class="btn" id="go">Obre la càmera</button>
-    <label class="btn alt" for="gal">Puja una foto de la galeria</label>
+    <label class="btn alt" id="galbtn" for="gal">Puja una foto de la galeria</label>
     <input id="gal" type="file" accept="image/*">
     <p class="err hide" id="err"></p>
+    <p class="badge hide" id="locked" style="display:block"></p>
     <div class="odds" id="odds"></div>
     <div class="demo hide" id="demo">
       <p>Mode demo: força el resultat de la propera tirada.</p>
@@ -97,7 +98,7 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
 
   <section id="s3" class="hide">
     <img id="final" alt="El teu selfie de Lucky Cup Friday">
-    <button class="btn" id="share">Comparteix a Instagram / TikTok</button>
+    <button class="btn" id="share">Envia-ho al grup de classe</button>
     <a class="btn alt" id="dl" download="lucky-cup.jpg">Desa la foto</a>
     <div class="badge" id="badge2"></div>
     <p class="code" id="code"></p>
@@ -106,7 +107,7 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
     <button class="btn alt" id="again">Torna a començar</button>
   </section>
 
-  <footer>Prototip per a una proposta de campanya (classe de Màrqueting). No és una promoció real.</footer>
+  <footer>Prototip per a una proposta de campanya (classe de Màrqueting). No és una promoció real.<span id="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:4px;vertical-align:middle"></span></footer>
 </main>
 <script type="module">
 const R=[
@@ -135,11 +136,27 @@ $('odds').innerHTML=R.map(r=>`<div class="odd ${r.k==='daurat'?'d':''}"><b>${r.n
 
 let forced=null;
 const showDemo=()=>$('demo').classList.toggle('hide',location.hash!=='#demo');
-showDemo();addEventListener('hashchange',showDemo);
+showDemo();addEventListener('hashchange',showDemo);setTimeout(()=>{readHash();addEventListener('hashchange',readHash)});
 $('chips').innerHTML=['Aleatori',...R.map(r=>r.n)].map((n,i)=>`<button class="chip ${i?'':'on'}" data-i="${i-1}">${n}</button>`).join('');
 $('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;
-  [...$('chips').children].forEach(c=>c.classList.toggle('on',c===b));const i=+b.dataset.i;forced=i<0?null:R[i]});
-const pick=()=>{if(forced)return forced;let t=Math.random()*100;for(const r of R){if((t-=r.w)<0)return r}return R[0]};
+  [...$('chips').children].forEach(c=>c.classList.toggle('on',c===b));const i=+b.dataset.i;forced=i<0?null:R[i];dot()});
+// ---- modes (hash) ----
+// #clase : class odds (Daurat 5%), one try per phone
+// #jy26  : owner mode. Tap the gold cup 3x fast to cycle Daurat > Luxe > Desastre > Aleatori (tiny dot in footer). No try limit.
+const CLASS=[50,30,15,5];
+let mode2='';
+const dot=()=>{$('dot').style.background=forced?forced.c:'transparent'};
+const weights=()=>mode2==='clase'?CLASS:R.map(r=>r.w);
+const readHash=()=>{mode2=location.hash==='#clase'?'clase':(location.hash==='#jy26'||location.hash==='#demo')?'owner':'';if(mode2!=='owner')forced=null;
+  $('odds').innerHTML=R.map((r,i)=>`<div class="odd ${r.k==='daurat'?'d':''}"><b>${r.n}</b>${weights()[i]}%</div>`).join('');dot();checkLock()};
+const store={get(){try{return JSON.parse(localStorage.getItem('lcf_done')||'null')}catch(e){return null}},set(v){try{localStorage.setItem('lcf_done',JSON.stringify(v))}catch(e){}}};
+const checkLock=()=>{const d=mode2==='clase'&&store.get();$('locked').classList.toggle('hide',!d);
+  ['go','galbtn'].forEach(id=>$(id).classList.toggle('hide',!!d));
+  if(d)$('locked').innerHTML=`Ja has jugat amb aquesta copa. Et va tocar <b style="color:${(R.find(r=>r.n===d.n)||R[0]).c}">${d.n}</b> · codi <b>${d.code}</b>`};
+const CYC=['daurat','luxe','desastre',null];let taps=[],cyc=-1;
+$('hero').addEventListener('click',()=>{if(mode2!=='owner')return;const now=Date.now();taps=taps.filter(t=>now-t<700);taps.push(now);
+  if(taps.length>=3){taps=[];cyc=(cyc+1)%CYC.length;forced=CYC[cyc]?R.find(r=>r.k===CYC[cyc]):null;dot();if(navigator.vibrate)navigator.vibrate(30)}});
+const pick=()=>{if(forced&&mode2==='owner')return forced;const w=weights();let t=Math.random()*100;for(let i=0;i<R.length;i++){if((t-=w[i])<0)return R[i]}return R[0]};
 
 const cv=$('cv'),ctx=cv.getContext('2d'),video=$('video');
 let mode='live',photo=null,cupImg=null,res=null,revealed=false,stream=null,detector=null,raf=0,lastT=-1,seen=false;
@@ -160,6 +177,7 @@ const drawLabel=()=>{
   ctx.fillStyle=g;ctx.fillRect(0,H-260*u,W,260*u);
   ctx.fillStyle=res.c;ctx.font=`900 ${78*u}px Archivo, Impact, sans-serif`;ctx.fillText(res.n.toUpperCase(),48*u,H-108*u);
   ctx.fillStyle='#f6f3ec';ctx.font=`600 ${40*u}px Inter, sans-serif`;ctx.fillText('Lucky Cup Friday  ·  #LuckyCupFriday',48*u,H-52*u);
+  ctx.textAlign='right';ctx.fillStyle='#e2b84a';ctx.font=`800 ${42*u}px Archivo, sans-serif`;ctx.fillText(curCode,W-48*u,H-108*u);ctx.textAlign='left';
 };
 const drawPhoto=()=>{
   const W=cv.width,H=cv.height;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
@@ -209,7 +227,7 @@ const spin=r=>new Promise(done=>{
 });
 const badge=el=>{el.innerHTML=`<i style="background:${res.c}"></i><div><b style="color:${res.c}">${res.n}</b><span>${res.p}</span></div>`};
 const roll=async()=>{
-  res=pick();revealed=false;cupImg=await load(svgUrl(SVG[res.k].s));
+  res=pick();curCode=code();if(mode2==='clase')store.set({n:res.n,code:curCode});revealed=false;cupImg=await load(svgUrl(SVG[res.k].s));
   $('edit').classList.add('hide');$('shoot').classList.add('hide');
   await spin(res);$('slot').classList.add('hide');revealed=true;badge($('badge'));
 };
@@ -250,6 +268,7 @@ const up=e=>{pts.delete(e.pointerId);pinch0=null;last=pts.size===1?[...pts.value
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 
 // ---------- result ----------
+let curCode='';
 const code=()=>'LCF-'+Array.from({length:5},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
 let blob=null;
 const finish=()=>{
@@ -257,7 +276,7 @@ const finish=()=>{
   drawLabel();
   cv.toBlob(b=>{
     blob=b;const url=URL.createObjectURL(b);$('final').src=url;$('dl').href=url;
-    stopCam();badge($('badge2'));$('code').textContent=code();
+    stopCam();badge($('badge2'));$('code').textContent=curCode;
     const file=new File([b],'lucky-cup.jpg',{type:'image/jpeg'});
     $('share').classList.toggle('hide',!(navigator.canShare&&navigator.canShare({files:[file]})));
     show('s3');scrollTo(0,0);
@@ -273,7 +292,7 @@ $('copy').addEventListener('click',async e=>{
   try{await navigator.clipboard.writeText(shareTxt());e.target.textContent='Copiat!'}catch(err){e.target.textContent=shareTxt()}
   setTimeout(()=>e.target.textContent='Copia el text',2500);
 });
-$('again').addEventListener('click',()=>{stopCam();show('s1');scrollTo(0,0)});
+$('again').addEventListener('click',()=>{stopCam();show('s1');checkLock();scrollTo(0,0)});
 
 </script>
 </body>
