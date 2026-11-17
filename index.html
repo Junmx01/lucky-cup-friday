@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lucky Cup Friday</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;800;900&family=Inter:wght@400;600&family=Permanent+Marker&display=swap" rel="stylesheet">
 <style>
 /* VOICE: playful, premium, a little bit of gambling thrill
    IDEA: a scratch-and-win ticket printed on a coffee cup sleeve
@@ -59,6 +59,9 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
 .badge:empty{display:none}
 .err{color:#ff9b8a;font-size:14px;margin:10px 0 0}
 .btn:disabled{opacity:.6}
+.nm{display:block;font-size:14px;color:var(--mut);margin:6px 0 6px}
+#nm{width:100%;min-height:50px;border-radius:14px;border:1.5px solid var(--line);background:var(--card);color:var(--ink);font:400 22px 'Permanent Marker',cursive;padding:0 14px}
+#nm:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
 </style>
 </head>
 <body>
@@ -67,11 +70,13 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
     <h1>Lucky Cup <span>Friday</span></h1>
     <p class="sub">No és un descompte. És sort. Obre la càmera i descobreix quina copa et toca.</p>
     <div class="hero" id="hero"></div>
+    <label class="nm" for="nm">El teu nom per a la copa</label>
+    <input id="nm" maxlength="14" placeholder="Ex: Marta" autocomplete="given-name">
     <button class="btn" id="go">Obre la càmera</button>
     <label class="btn alt" id="galbtn" for="gal">Puja una foto de la galeria</label>
     <input id="gal" type="file" accept="image/*">
+    <p class="badge hide" id="wait" style="display:block"></p>
     <p class="err hide" id="err"></p>
-    <p class="badge hide" id="locked" style="display:block"></p>
     <div class="odds" id="odds"></div>
     <div class="demo hide" id="demo">
       <p>Mode demo: força el resultat de la propera tirada.</p>
@@ -109,171 +114,225 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
 
   <footer>Prototip per a una proposta de campanya (classe de Màrqueting). No és una promoció real.<span id="dot" style="display:inline-block;width:5px;height:5px;border-radius:50%;margin-left:4px;vertical-align:middle"></span></footer>
 </main>
+
 <script type="module">
+// ================= data =================
 const R=[
  {k:'classic',n:'Clàssic',w:60,c:'#f6f3ec',p:'Punts dobles a l\'app en la propera beguda.'},
  {k:'desastre',n:'Desastre',w:25,c:'#b0723f',p:'Ups! Cupó de consolació: 20% a la propera beguda.'},
  {k:'luxe',n:'Luxe',w:12,c:'#d9c7a3',p:'Merch de la col·lecció limitada.'},
  {k:'daurat',n:'Daurat',w:3,c:'#e2b84a',p:'Cafè gratis durant un mes.'}
 ];
-const cupBody=(fill,extra='')=>`<path d="M42 78 L158 78 L144 252 Q100 262 56 252 Z" fill="${fill}"/>${extra}<rect x="30" y="58" width="140" height="24" rx="10" fill="#1b1b1b"/><path d="M44 60 Q100 26 156 60 Z" fill="#262626"/>`;
+const CLASS=[50,30,15,5];
+const lid=(a='#1b1b1b',b='#262626')=>`<rect x="30" y="58" width="140" height="24" rx="10" fill="${a}"/><path d="M44 60 Q100 26 156 60 Z" fill="${b}"/>`;
+const body=(fill,extra='')=>`<path d="M42 78 L158 78 L144 252 Q100 262 56 252 Z" fill="${fill}"/>${extra}`;
+const emblem=(cx,cy,c)=>`<circle cx="${cx}" cy="${cy}" r="19" fill="#fbfaf6"/><circle cx="${cx}" cy="${cy}" r="14" fill="none" stroke="${c}" stroke-width="2"/><path d="M${cx} ${cy-9} l2.6 6 6.4.6-4.9 4.2 1.5 6.3-5.6-3.4-5.6 3.4 1.5-6.3-4.9-4.2 6.4-.6z" fill="${c}"/>`;
+// a = where the cup touches the head (fraction of height); ny = name line (fraction of height); nc = name colour; flip = name upside down
 const SVG={
- classic:{a:.97,s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260">${cupBody('#fbfaf6','<path d="M50 132 L150 132 L145 196 L55 196 Z" fill="#0f5b45"/><circle cx="100" cy="164" r="19" fill="#fbfaf6"/><circle cx="100" cy="164" r="11" fill="#0f5b45"/>')}</svg>`},
- desastre:{a:.56,s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 330"><g transform="rotate(180 100 100)"><path d="M42 18 L158 18 L144 182 Q100 192 56 182 Z" fill="#fbfaf6"/><path d="M50 72 L150 72 L146 126 L54 126 Z" fill="#0f5b45"/></g><path d="M20 182 Q100 160 180 182 Q186 200 170 206 L168 262 Q160 276 152 262 L150 214 Q134 222 126 216 L124 300 Q114 318 104 300 L102 220 Q88 226 76 216 L74 250 Q66 266 58 250 L56 210 Q30 210 20 196 Z" fill="#6b3f1f"/><ellipse cx="72" cy="196" rx="14" ry="5" fill="#8a5a33"/><circle cx="168" cy="150" r="7" fill="#6b3f1f"/><circle cx="30" cy="140" r="5" fill="#6b3f1f"/></svg>`},
- luxe:{a:.97,s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260"><defs><pattern id="m" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#eadfca"/><path d="M11 3 L19 11 L11 19 L3 11 Z" fill="none" stroke="#b08a3e" stroke-width="1.4"/></pattern></defs>${cupBody('url(#m)','<rect x="46" y="120" width="108" height="16" fill="#111"/><rect x="46" y="136" width="108" height="4" fill="#e2b84a"/><text x="100" y="208" font-family="Georgia,serif" font-size="20" text-anchor="middle" fill="#111" letter-spacing="3">ÉDITION</text>')}</svg>`},
- daurat:{a:.9,s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 290"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#9c7419"/><stop offset=".45" stop-color="#ffe08a"/><stop offset=".6" stop-color="#e2b84a"/><stop offset="1" stop-color="#7a5a12"/></linearGradient></defs><g transform="translate(10 6)">${cupBody('url(#g)','<path d="M70 90 L92 90 L80 240 L64 238 Z" fill="#fff3c4" opacity=".5"/>').replace('#1b1b1b','#5a430e').replace('#262626','#7a5a12')}</g><g fill="#ffe9a8"><path d="M18 60 l5 14 14 5 -14 5 -5 14 -5 -14 -14 -5 14 -5z"/><path d="M196 30 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path d="M200 170 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/></g></svg>`}
+ classic:{a:.97,ny:.43,nc:'#1d1d1d',s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260">${body('#fbfaf6','<path d="M50 138 L150 138 L145 204 L55 204 Z" fill="#0f5b45"/>'+emblem(100,171,'#0f5b45'))}${lid()}</svg>`},
+ desastre:{a:.56,ny:.16,nc:'#1d1d1d',flip:true,s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 330"><g transform="rotate(180 100 100)"><path d="M42 18 L158 18 L144 182 Q100 192 56 182 Z" fill="#fbfaf6"/><path d="M50 78 L150 78 L146 134 L54 134 Z" fill="#0f5b45"/></g><path d="M20 182 Q100 160 180 182 Q186 200 170 206 L168 262 Q160 276 152 262 L150 214 Q134 222 126 216 L124 300 Q114 318 104 300 L102 220 Q88 226 76 216 L74 250 Q66 266 58 250 L56 210 Q30 210 20 196 Z" fill="#6b3f1f"/><ellipse cx="72" cy="196" rx="14" ry="5" fill="#8a5a33"/><circle cx="168" cy="150" r="7" fill="#6b3f1f"/><circle cx="30" cy="140" r="5" fill="#6b3f1f"/></svg>`},
+ luxe:{a:.97,ny:.40,nc:'#111',s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 260"><defs><pattern id="m" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="#eadfca"/><path d="M11 3 L19 11 L11 19 L3 11 Z" fill="none" stroke="#b08a3e" stroke-width="1.4"/></pattern></defs>${body('url(#m)','<rect x="46" y="128" width="108" height="16" fill="#111"/><rect x="46" y="144" width="108" height="4" fill="#e2b84a"/><text x="100" y="212" font-family="Georgia,serif" font-size="20" text-anchor="middle" fill="#111" letter-spacing="3">ÉDITION</text>')}${lid('#111','#1d1d1d')}</svg>`},
+ daurat:{a:.9,ny:.41,nc:'#4a3608',s:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 290"><defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#9c7419"/><stop offset=".45" stop-color="#ffe08a"/><stop offset=".6" stop-color="#e2b84a"/><stop offset="1" stop-color="#7a5a12"/></linearGradient></defs><g transform="translate(10 6)">${body('url(#g)','<path d="M70 90 L92 90 L80 240 L64 238 Z" fill="#fff3c4" opacity=".5"/>'+emblem(100,180,'#9c7419'))}${lid('#5a430e','#7a5a12')}</g><g fill="#ffe9a8"><path d="M18 60 l5 14 14 5 -14 5 -5 14 -5 -14 -14 -5 14 -5z"/><path d="M196 30 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path d="M200 170 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/></g></svg>`}
 };
+const CROISSANT=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 64"><path d="M6 46 Q14 10 50 6 Q86 10 94 46 Q84 38 74 42 Q64 26 50 26 Q36 26 26 42 Q16 38 6 46Z" fill="#d9963a"/><path d="M26 42 Q34 22 50 26 M74 42 Q66 22 50 26 M50 6 L50 26" stroke="#9c5a1c" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 32 Q30 14 50 12" stroke="#f3c47a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
+const POOP=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 90"><ellipse cx="50" cy="74" rx="44" ry="14" fill="#6b3f1f"/><ellipse cx="50" cy="55" rx="34" ry="13" fill="#7a4a22"/><ellipse cx="50" cy="37" rx="23" ry="11" fill="#8a5428"/><path d="M50 8 Q64 22 52 30 Q40 26 50 8Z" fill="#8a5428"/><circle cx="40" cy="54" r="6" fill="#fff"/><circle cx="60" cy="54" r="6" fill="#fff"/><circle cx="41" cy="55" r="3" fill="#111"/><circle cx="61" cy="55" r="3" fill="#111"/><path d="M40 66 Q50 74 60 66" stroke="#2a160a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
 
+// ================= helpers =================
 const $=id=>document.getElementById(id);
 const show=id=>['s1','s2','s3'].forEach(s=>$(s).classList.toggle('hide',s!==id));
 const load=src=>new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=ko;i.src=src});
 const svgUrl=s=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+let IMG={};Promise.all([load(svgUrl(CROISSANT)),load(svgUrl(POOP))]).then(([c,p])=>IMG={c,p});
 
 $('hero').innerHTML=SVG.daurat.s.replace('<svg ','<svg role="img" aria-label="Copa daurada" ');
-$('odds').innerHTML=R.map(r=>`<div class="odd ${r.k==='daurat'?'d':''}"><b>${r.n}</b>${r.w}%</div>`).join('');
+$('nm').value=ls.get('lcf_name')||'';
 
-let forced=null;
-const showDemo=()=>$('demo').classList.toggle('hide',location.hash!=='#demo');
-showDemo();addEventListener('hashchange',showDemo);setTimeout(()=>{readHash();addEventListener('hashchange',readHash)});
+// ================= modes =================
+// #clase : class odds (Daurat 5%) + one try per minute
+// #jy26 / #demo : owner mode, tap gold cup 3x fast to cycle Daurat > Luxe > Desastre > Aleatori
+let forced=null,mode2='';
+const dot=()=>{$('dot').style.background=forced?forced.c:'transparent'};
+const weights=()=>mode2==='clase'?CLASS:R.map(r=>r.w);
+const COOL=60000;let waitT=0;
+const checkWait=()=>{
+  clearInterval(waitT);
+  const tick=()=>{const left=mode2==='clase'?COOL-(Date.now()-(+ls.get('lcf_last')||0)):0;
+    const on=left>0;$('wait').classList.toggle('hide',!on);$('go').disabled=on;$('galbtn').classList.toggle('hide',on);
+    if(on)$('wait').textContent=`Pots tornar a jugar d'aquí a ${Math.ceil(left/1000)} s`;else clearInterval(waitT)};
+  tick();waitT=setInterval(tick,500);
+};
+const readHash=()=>{
+  mode2=location.hash==='#clase'?'clase':(location.hash==='#jy26'||location.hash==='#demo')?'owner':'';
+  if(mode2!=='owner')forced=null;
+  $('demo').classList.toggle('hide',location.hash!=='#demo');
+  $('odds').innerHTML=R.map((r,i)=>`<div class="odd ${r.k==='daurat'?'d':''}"><b>${r.n}</b>${weights()[i]}%</div>`).join('');
+  dot();checkWait();
+};
 $('chips').innerHTML=['Aleatori',...R.map(r=>r.n)].map((n,i)=>`<button class="chip ${i?'':'on'}" data-i="${i-1}">${n}</button>`).join('');
 $('chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;
   [...$('chips').children].forEach(c=>c.classList.toggle('on',c===b));const i=+b.dataset.i;forced=i<0?null:R[i];dot()});
-// ---- modes (hash) ----
-// #clase : class odds (Daurat 5%), one try per phone
-// #jy26  : owner mode. Tap the gold cup 3x fast to cycle Daurat > Luxe > Desastre > Aleatori (tiny dot in footer). No try limit.
-const CLASS=[50,30,15,5];
-let mode2='';
-const dot=()=>{$('dot').style.background=forced?forced.c:'transparent'};
-const weights=()=>mode2==='clase'?CLASS:R.map(r=>r.w);
-const readHash=()=>{mode2=location.hash==='#clase'?'clase':(location.hash==='#jy26'||location.hash==='#demo')?'owner':'';if(mode2!=='owner')forced=null;
-  $('odds').innerHTML=R.map((r,i)=>`<div class="odd ${r.k==='daurat'?'d':''}"><b>${r.n}</b>${weights()[i]}%</div>`).join('');dot();checkLock()};
-const store={get(){try{return JSON.parse(localStorage.getItem('lcf_done')||'null')}catch(e){return null}},set(v){try{localStorage.setItem('lcf_done',JSON.stringify(v))}catch(e){}}};
-const checkLock=()=>{const d=mode2==='clase'&&store.get();$('locked').classList.toggle('hide',!d);
-  ['go','galbtn'].forEach(id=>$(id).classList.toggle('hide',!!d));
-  if(d)$('locked').innerHTML=`Ja has jugat amb aquesta copa. Et va tocar <b style="color:${(R.find(r=>r.n===d.n)||R[0]).c}">${d.n}</b> · codi <b>${d.code}</b>`};
 const CYC=['daurat','luxe','desastre',null];let taps=[],cyc=-1;
 $('hero').addEventListener('click',()=>{if(mode2!=='owner')return;const now=Date.now();taps=taps.filter(t=>now-t<700);taps.push(now);
   if(taps.length>=3){taps=[];cyc=(cyc+1)%CYC.length;forced=CYC[cyc]?R.find(r=>r.k===CYC[cyc]):null;dot();if(navigator.vibrate)navigator.vibrate(30)}});
+readHash();addEventListener('hashchange',readHash);
 const pick=()=>{if(forced&&mode2==='owner')return forced;const w=weights();let t=Math.random()*100;for(let i=0;i<R.length;i++){if((t-=w[i])<0)return R[i]}return R[0]};
 
-const cv=$('cv'),ctx=cv.getContext('2d'),video=$('video');
-let mode='live',photo=null,cupImg=null,res=null,revealed=false,stream=null,detector=null,raf=0,lastT=-1,seen=false;
-let cup={x:0,y:0,w:0,r:0};          // current (smoothed) cup position in canvas px
-let man={s:.34,r:0};                // manual-mode size (fraction of width) and rotation
+// ================= sound (synthesised, no files) =================
+let AC=null;
+const unlock=()=>{try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume()}catch(e){}};
+const tone=(f,t0,dur,type='sine',vol=.18,f2=null)=>{if(!AC)return;const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+t0;
+  o.type=type;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.linearRampToValueAtTime(f2,t+dur);
+  g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.02);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g).connect(AC.destination);o.start(t);o.stop(t+dur+.05)};
+const SFX={
+  classic:()=>{tone(880,0,.25,'sine',.15);tone(1320,.12,.35,'sine',.1)},
+  desastre:()=>{[392,370,349,330].forEach((f,i)=>tone(f,i*.32,i<3?.3:.9,'sawtooth',.12,i<3?null:300))},
+  luxe:()=>{[1047,1319,1568,2093,2637].forEach((f,i)=>tone(f,i*.09,1.2,'triangle',.11))},
+  daurat:()=>{[[523,0],[659,.12],[784,.24],[1047,.36]].forEach(([f,t])=>tone(f,t,.5,'square',.08));
+    [523,659,784,1047].forEach(f=>tone(f,.55,1.4,'triangle',.09));for(let i=0;i<10;i++)tone(rnd(1800,3200),.6+i*.08,.25,'sine',.05)}
+};
 
-// ---------- drawing ----------
+// ================= state =================
+const cv=$('cv'),ctx=cv.getContext('2d'),video=$('video');
+let mode='live',photo=null,cupImg=null,res=null,revealed=false,stream=null,detector=null,raf=0,lastT=-1,seen=false,running=false,curCode='',myName='';
+let cup={x:0,y:0,w:0,r:0},man={s:.34,r:0},P=[];
+
+// ================= particles =================
+const cupTop=()=>{const ch=cup.w*cupImg.height/cupImg.width,h=ch*SVG[res.k].a;return{x:cup.x+Math.sin(cup.r)*h,y:cup.y-Math.cos(cup.r)*h,ch}};
+const spawn=(n=1)=>{
+  const W=cv.width,H=cv.height,u=W/1080;
+  for(let i=0;i<n;i++){
+    if(res.k==='classic'){const t=cupTop();P.push({t:'steam',x:t.x+rnd(-.15,.15)*cup.w,y:t.y-cup.w*.05,vx:rnd(-.3,.3)*u,vy:-rnd(1,2)*u,s:cup.w*rnd(.04,.07),life:0,max:rnd(50,80)})}
+    else if(res.k==='desastre'){P.push({t:Math.random()<.5?'c':'p',x:rnd(0,W),y:-80*u,vx:rnd(-1,1)*u,vy:rnd(4,8)*u,r:rnd(0,6),vr:rnd(-.08,.08),s:rnd(90,150)*u,life:0,max:400})}
+    else if(res.k==='luxe'){const a=rnd(0,Math.PI*2),d=cup.w*rnd(.5,1.1),t=cupTop();P.push({t:'spark',x:cup.x+Math.cos(a)*d,y:(cup.y+t.y)/2+Math.sin(a)*d,s:rnd(10,26)*u,col:Math.random()<.6?'#e2b84a':'#fff',life:0,max:rnd(30,60)})}
+    else{P.push({t:'conf',x:rnd(0,W),y:-20*u,vx:rnd(-1.5,1.5)*u,vy:rnd(3,7)*u,r:rnd(0,6),vr:rnd(-.2,.2),w:rnd(10,20)*u,h:rnd(16,30)*u,col:['#e2b84a','#ffe08a','#fff','#0f5b45'][Math.floor(rnd(0,4))],life:0,max:500})}
+  }
+};
+const star=(x,y,s)=>{ctx.beginPath();for(let i=0;i<8;i++){const a=i*Math.PI/4,r=i%2?s*.28:s;ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r)}ctx.closePath();ctx.fill()};
+const stepFx=()=>{
+  if(!revealed||!res||!cupImg)return;
+  if(!reduce){const rate={classic:.25,desastre:.12,luxe:.6,daurat:1.4}[res.k];let n=Math.floor(rate)+(Math.random()<rate%1?1:0);spawn(n)}
+  const H=cv.height;
+  P=P.filter(p=>(p.life++)<p.max&&p.y<H+200);
+  for(const p of P){
+    const k=p.life/p.max;
+    if(p.t==='steam'){p.x+=p.vx;p.y+=p.vy;ctx.globalAlpha=.35*(1-k);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,p.s*(1+k*1.5),0,7);ctx.fill()}
+    else if(p.t==='spark'){ctx.globalAlpha=Math.sin(k*Math.PI);ctx.fillStyle=p.col;star(p.x,p.y,p.s*(.6+.4*Math.sin(k*Math.PI)))}
+    else if(p.t==='conf'){p.x+=p.vx+Math.sin(p.life*.1)*.8;p.y+=p.vy;p.r+=p.vr;ctx.globalAlpha=1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.col;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.life*.15)));ctx.restore()}
+    else{const im=p.t==='c'?IMG.c:IMG.p;if(!im)continue;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.globalAlpha=1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.drawImage(im,-p.s/2,-p.s*im.height/im.width/2,p.s,p.s*im.height/im.width);ctx.restore()}
+  }
+  ctx.globalAlpha=1;
+};
+const burst=()=>{P=[];spawn({classic:12,desastre:14,luxe:40,daurat:140}[res.k]);
+  if(res.k==='daurat')for(const p of P)p.y=rnd(-cv.height*.6,0)};
+
+// ================= drawing =================
 const drawCup=()=>{
   if(!cupImg||!res||!revealed)return;
-  const cw=cup.w,ch=cw*cupImg.height/cupImg.width,a=SVG[res.k].a;
+  const cw=cup.w,ch=cw*cupImg.height/cupImg.width,d=SVG[res.k];
   ctx.save();ctx.translate(cup.x,cup.y);ctx.rotate(cup.r);
+  if(res.k==='daurat'){const g=ctx.createRadialGradient(0,-ch*d.a*.5,0,0,-ch*d.a*.5,cw*1.1);g.addColorStop(0,'rgba(255,224,138,.55)');g.addColorStop(1,'rgba(255,224,138,0)');ctx.fillStyle=g;ctx.fillRect(-cw*1.2,-ch*d.a-cw*.7,cw*2.4,cw*2.4)}
   ctx.shadowColor='rgba(0,0,0,.45)';ctx.shadowBlur=cw*.08;ctx.shadowOffsetY=cw*.03;
-  ctx.drawImage(cupImg,-cw/2,-ch*a,cw,ch);ctx.restore();
+  ctx.drawImage(cupImg,-cw/2,-ch*d.a,cw,ch);ctx.shadowColor='transparent';
+  if(myName){ctx.translate(0,-ch*d.a+ch*d.ny);if(d.flip)ctx.rotate(Math.PI);ctx.rotate(-.06);
+    ctx.fillStyle=d.nc;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${cw*.15}px 'Permanent Marker', 'Comic Sans MS', cursive`;ctx.fillText(myName,0,0,cw*.62)}
+  ctx.restore();
 };
 const drawLabel=()=>{
   const W=cv.width,H=cv.height,u=W/1080;
   const g=ctx.createLinearGradient(0,H-260*u,0,H);g.addColorStop(0,'rgba(0,0,0,0)');g.addColorStop(1,'rgba(0,0,0,.85)');
-  ctx.fillStyle=g;ctx.fillRect(0,H-260*u,W,260*u);
+  ctx.fillStyle=g;ctx.fillRect(0,H-260*u,W,260*u);ctx.textAlign='left';ctx.textBaseline='alphabetic';
   ctx.fillStyle=res.c;ctx.font=`900 ${78*u}px Archivo, Impact, sans-serif`;ctx.fillText(res.n.toUpperCase(),48*u,H-108*u);
   ctx.fillStyle='#f6f3ec';ctx.font=`600 ${40*u}px Inter, sans-serif`;ctx.fillText('Lucky Cup Friday  ·  #LuckyCupFriday',48*u,H-52*u);
   ctx.textAlign='right';ctx.fillStyle='#e2b84a';ctx.font=`800 ${42*u}px Archivo, sans-serif`;ctx.fillText(curCode,W-48*u,H-108*u);ctx.textAlign='left';
 };
-const drawPhoto=()=>{
+const drawBg=()=>{
+  if(mode==='live'){if(video.readyState<2)return false;const W=cv.width=video.videoWidth,H=cv.height=video.videoHeight;
+    ctx.save();ctx.translate(W,0);ctx.scale(-1,1);ctx.drawImage(video,0,0,W,H);ctx.restore();return true}
   const W=cv.width,H=cv.height;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
   if(photo){const sc=Math.max(W/photo.width,H/photo.height),pw=photo.width*sc,ph=photo.height*sc;ctx.drawImage(photo,(W-pw)/2,(H-ph)/2,pw,ph)}
-  if(revealed){cup.w=W*man.s;cup.r=man.r*Math.PI/180}
-  drawCup();
+  cup.w=W*man.s;cup.r=man.r*Math.PI/180;return true;
 };
-
-// ---------- live camera + face tracking ----------
+const trackFace=()=>{
+  const W=cv.width,H=cv.height;
+  if(detector&&video.currentTime!==lastT){
+    lastT=video.currentTime;let r=null;try{r=detector.detectForVideo(video,performance.now())}catch(e){}
+    const d=r&&r.detections&&r.detections[0];
+    if(d){const b=d.boundingBox,k=d.keypoints||[];const cx=W-(b.originX+b.width/2),cy=b.originY+b.height/2;
+      let ro=0;if(k.length>1){const ax=W-k[0].x*W,ay=k[0].y*H,bx=W-k[1].x*W,by=k[1].y*H;ro=Math.atan2(by-ay,bx-ax);if(Math.abs(ro)>Math.PI/2)ro+=ro>0?-Math.PI:Math.PI}
+      const dist=b.height*.95,tx=cx+Math.sin(ro)*dist,ty=cy-Math.cos(ro)*dist,tw=b.width*1.05,f=seen?.35:1;
+      cup.x+=(tx-cup.x)*f;cup.y+=(ty-cup.y)*f;cup.w+=(tw-cup.w)*f;cup.r+=(ro-cup.r)*f;seen=true}
+    if(detector)$('nf').classList.toggle('hide',!!d||!revealed);
+  }
+  if(!seen){cup.x=W/2;cup.y=H*.3;cup.w=W*.34;cup.r=0}
+};
+const frame=()=>{if(!running)return;raf=requestAnimationFrame(frame);if(!drawBg())return;if(mode==='live')trackFace();drawCup();stepFx()};
+const startLoop=()=>{running=true;cancelAnimationFrame(raf);frame()};
+const stopLoop=()=>{running=false;cancelAnimationFrame(raf)};
+const stopCam=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null};
 const initDetector=async()=>{
   const base='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14';
   const {FaceDetector,FilesetResolver}=await import(base+'/vision_bundle.mjs');
   const fs=await FilesetResolver.forVisionTasks(base+'/wasm');
   return FaceDetector.createFromOptions(fs,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',delegate:'GPU'},runningMode:'VIDEO',minDetectionConfidence:.5});
 };
-const track=()=>{
-  raf=requestAnimationFrame(track);
-  if(video.readyState<2)return;
-  const W=cv.width=video.videoWidth,H=cv.height=video.videoHeight;
-  ctx.save();ctx.translate(W,0);ctx.scale(-1,1);ctx.drawImage(video,0,0,W,H);ctx.restore();
-  if(detector&&video.currentTime!==lastT){
-    lastT=video.currentTime;
-    let r;try{r=detector.detectForVideo(video,performance.now())}catch(e){r=null}
-    const d=r&&r.detections&&r.detections[0];
-    if(d){
-      const b=d.boundingBox,k=d.keypoints||[];
-      const cx=W-(b.originX+b.width/2),cy=b.originY+b.height/2;   // mirrored x
-      let roll=0;if(k.length>1){const ax=W-k[0].x*W,ay=k[0].y*H,bx=W-k[1].x*W,by=k[1].y*H;roll=Math.atan2(by-ay,bx-ax);if(Math.abs(roll)>Math.PI/2)roll+=roll>0?-Math.PI:Math.PI}
-      const dist=b.height*.95,tx=cx+Math.sin(roll)*dist,ty=cy-Math.cos(roll)*dist,tw=b.width*1.05;
-      const f=seen?.35:1;
-      cup.x+=(tx-cup.x)*f;cup.y+=(ty-cup.y)*f;cup.w+=(tw-cup.w)*f;cup.r+=(roll-cup.r)*f;seen=true;
-    }
-    $('nf').classList.toggle('hide',!!d||!revealed);
-  }
-  if(!seen){cup.x=W/2;cup.y=H*.3;cup.w=W*.34;cup.r=0}
-  drawCup();
-};
-const stopCam=()=>{cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());stream=null};
 
-// ---------- lottery reveal ----------
+// ================= lottery =================
+const code=()=>'LCF-'+Array.from({length:5},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
 const spin=r=>new Promise(done=>{
   const slot=$('slot'),t=$('slotTxt');slot.classList.remove('hide');
   if(reduce){t.innerHTML=`${r.n}<small>${r.p}</small>`;t.style.color=r.c;return setTimeout(done,900)}
-  let i=0,d=60;const step=()=>{const x=R[i++%R.length];t.textContent=x.n;t.style.color=x.c;
+  let i=0,d=60;const step=()=>{const x=R[i++%R.length];t.textContent=x.n;t.style.color=x.c;tone(500+i*20,0,.04,'square',.04);
     d*=1.13;if(d<420)setTimeout(step,d);else{t.innerHTML=`${r.n}<small>${r.p}</small>`;t.style.color=r.c;setTimeout(done,1300)}};
   step();
 });
 const badge=el=>{el.innerHTML=`<i style="background:${res.c}"></i><div><b style="color:${res.c}">${res.n}</b><span>${res.p}</span></div>`};
 const roll=async()=>{
-  res=pick();curCode=code();if(mode2==='clase')store.set({n:res.n,code:curCode});revealed=false;cupImg=await load(svgUrl(SVG[res.k].s));
-  $('edit').classList.add('hide');$('shoot').classList.add('hide');
-  await spin(res);$('slot').classList.add('hide');revealed=true;badge($('badge'));
+  res=pick();curCode=code();if(mode2==='clase')ls.set('lcf_last',Date.now());
+  revealed=false;P=[];cupImg=await load(svgUrl(SVG[res.k].s));$('badge').innerHTML='';
+  await spin(res);$('slot').classList.add('hide');revealed=true;badge($('badge'));SFX[res.k]();burst();
 };
+const begin=()=>{unlock();myName=$('nm').value.trim();ls.set('lcf_name',myName)};
 
-// ---------- entry points ----------
+// ================= entry points =================
 $('go').addEventListener('click',async()=>{
-  $('go').disabled=true;$('go').textContent='Obrint la càmera…';
-  try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:false});
-  }catch(e){$('go').disabled=false;$('go').textContent='Obre la càmera';$('err').textContent='No s\'ha pogut obrir la càmera. Prova amb una foto de la galeria.';$('err').classList.remove('hide');return}
+  begin();$('go').disabled=true;$('go').textContent='Obrint la càmera…';
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:720},height:{ideal:1280}},audio:false})}
+  catch(e){$('go').disabled=false;$('go').textContent='Obre la càmera';$('err').textContent='No s\'ha pogut obrir la càmera. Prova amb una foto de la galeria.';$('err').classList.remove('hide');return}
   mode='live';seen=false;video.srcObject=stream;await video.play().catch(()=>{});
-  show('s2');scrollTo(0,0);track();
-  initDetector().then(d=>detector=d).catch(()=>{$('nf').textContent='Seguiment facial no disponible: la copa queda fixa.';$('nf').classList.remove('hide')});
-  await roll();
-  $('shoot').classList.remove('hide');
-  $('go').disabled=false;$('go').textContent='Obre la càmera';
+  $('edit').classList.add('hide');$('shoot').classList.add('hide');show('s2');scrollTo(0,0);startLoop();
+  if(!detector)initDetector().then(d=>detector=d).catch(()=>{$('nf').textContent='Seguiment facial no disponible: la copa queda fixa.';$('nf').classList.remove('hide')});
+  await roll();$('shoot').classList.remove('hide');$('go').disabled=false;$('go').textContent='Obre la càmera';
 });
-const startPhoto=async f=>{
-  if(!f)return;try{photo=await load(URL.createObjectURL(f))}catch(e){return}
-  mode='photo';cv.width=1080;cv.height=1440;man={s:.34,r:0};$('size').value=.34;$('rot').value=0;
-  cup.x=cv.width/2;cup.y=cv.height*.36;revealed=false;
-  show('s2');scrollTo(0,0);drawPhoto();await roll();drawPhoto();$('edit').classList.remove('hide');
-};
-$('gal').addEventListener('change',e=>{startPhoto(e.target.files[0]);e.target.value=''});
-
-$('size').addEventListener('input',e=>{man.s=+e.target.value;drawPhoto()});
-$('rot').addEventListener('input',e=>{man.r=+e.target.value;drawPhoto()});
+$('gal').addEventListener('change',async e=>{
+  const f=e.target.files[0];e.target.value='';if(!f)return;begin();
+  try{photo=await load(URL.createObjectURL(f))}catch(err){return}
+  mode='photo';cv.width=1080;cv.height=1440;man={s:.34,r:0};$('size').value=.34;$('rot').value=0;cup.x=540;cup.y=1440*.36;
+  $('edit').classList.add('hide');$('shoot').classList.add('hide');show('s2');scrollTo(0,0);startLoop();
+  await roll();$('edit').classList.remove('hide');
+});
+$('size').addEventListener('input',e=>man.s=+e.target.value);
+$('rot').addEventListener('input',e=>man.r=+e.target.value);
 const pts=new Map();let last=null,pinch0=null;
 const toCv=e=>{const b=cv.getBoundingClientRect();return{x:(e.clientX-b.left)*cv.width/b.width,y:(e.clientY-b.top)*cv.height/b.height}};
 cv.addEventListener('pointerdown',e=>{if(mode!=='photo')return;cv.setPointerCapture(e.pointerId);pts.set(e.pointerId,toCv(e));
-  if(pts.size===1)last=toCv(e);
-  if(pts.size===2){const [a,b]=[...pts.values()];pinch0={d:Math.hypot(a.x-b.x,a.y-b.y),s:man.s}}});
+  if(pts.size===1)last=toCv(e);if(pts.size===2){const [a,b]=[...pts.values()];pinch0={d:Math.hypot(a.x-b.x,a.y-b.y),s:man.s}}});
 cv.addEventListener('pointermove',e=>{if(mode!=='photo'||!pts.has(e.pointerId)||!revealed)return;const p=toCv(e);pts.set(e.pointerId,p);
   if(pts.size===2&&pinch0){const [a,b]=[...pts.values()];man.s=clamp(pinch0.s*Math.hypot(a.x-b.x,a.y-b.y)/pinch0.d,.15,.9);$('size').value=man.s}
-  else if(last){cup.x+=p.x-last.x;cup.y+=p.y-last.y;last=p}
-  drawPhoto()});
+  else if(last){cup.x+=p.x-last.x;cup.y+=p.y-last.y;last=p}});
 const up=e=>{pts.delete(e.pointerId);pinch0=null;last=pts.size===1?[...pts.values()][0]:null};
 cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 
-// ---------- result ----------
-let curCode='';
-const code=()=>'LCF-'+Array.from({length:5},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
+// ================= result =================
 let blob=null;
 const finish=()=>{
-  if(mode==='live'){cancelAnimationFrame(raf)}else drawPhoto();
-  drawLabel();
+  stopLoop();drawBg();drawCup();
+  if(res.k==='daurat'||res.k==='desastre'){for(const p of P)p.life=Math.min(p.life,p.max-2)} // keep particles visible in the photo
+  stepFx();drawLabel();tone(1600,0,.06,'square',.08);
   cv.toBlob(b=>{
     blob=b;const url=URL.createObjectURL(b);$('final').src=url;$('dl').href=url;
     stopCam();badge($('badge2'));$('code').textContent=curCode;
@@ -285,15 +344,10 @@ const finish=()=>{
 $('shoot').addEventListener('click',finish);
 $('done').addEventListener('click',finish);
 const shareTxt=()=>`M'ha tocat la copa ${res.n} a #LuckyCupFriday. No és un descompte. És sort.`;
-$('share').addEventListener('click',async()=>{
-  try{await navigator.share({files:[new File([blob],'lucky-cup.jpg',{type:'image/jpeg'})],text:shareTxt()})}catch(e){}
-});
-$('copy').addEventListener('click',async e=>{
-  try{await navigator.clipboard.writeText(shareTxt());e.target.textContent='Copiat!'}catch(err){e.target.textContent=shareTxt()}
-  setTimeout(()=>e.target.textContent='Copia el text',2500);
-});
-$('again').addEventListener('click',()=>{stopCam();show('s1');checkLock();scrollTo(0,0)});
-
+$('share').addEventListener('click',async()=>{try{await navigator.share({files:[new File([blob],'lucky-cup.jpg',{type:'image/jpeg'})],text:shareTxt()})}catch(e){}});
+$('copy').addEventListener('click',async e=>{try{await navigator.clipboard.writeText(shareTxt());e.target.textContent='Copiat!'}catch(err){e.target.textContent=shareTxt()}
+  setTimeout(()=>e.target.textContent='Copia el text',2500)});
+$('again').addEventListener('click',()=>{stopLoop();stopCam();show('s1');checkWait();scrollTo(0,0)});
 </script>
 </body>
 </html>
