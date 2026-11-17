@@ -33,7 +33,12 @@ input[type=file]{display:none}
 .odd b{display:block;font:800 15px Archivo,sans-serif;color:var(--ink)}
 .odd.d b{color:var(--gold)}
 .hide{display:none!important}
-.stage{position:relative;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line);touch-action:none}
+.stage{position:relative;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line);touch-action:none;width:fit-content;max-width:100%;margin:0 auto}
+#s2 canvas{width:auto;max-width:100%;max-height:calc(100svh - 190px);margin:0 auto}
+#s2 .badge{margin:10px 0 0;padding:10px 12px}
+#s2 .badge b{font-size:17px}#s2 .badge span{font-size:14px}
+.stage .shoot{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);margin:0;width:70px;height:70px;box-shadow:0 4px 18px rgba(0,0,0,.5)}
+#s3 #final{max-height:calc(100svh - 140px);width:auto;max-width:100%;margin:0 auto}
 canvas{display:block;width:100%;height:auto}
 .slot{position:absolute;inset:0;display:grid;place-items:center;background:rgba(0,0,0,.72);backdrop-filter:blur(6px)}
 .slot div{font:900 clamp(32px,11vw,52px) Archivo,sans-serif;text-align:center}
@@ -53,7 +58,7 @@ canvas{display:block;width:100%;height:auto}
 .chip{min-height:44px;padding:0 14px;border-radius:22px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14px Inter,sans-serif;cursor:pointer}
 .chip.on{background:var(--gold);color:#1a1405;border-color:var(--gold)}
 footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
-.nf{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.7);padding:8px 14px;border-radius:20px;font-size:14px;white-space:nowrap}
+.nf{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.65);padding:6px 12px;border-radius:16px;font-size:13px;max-width:88%;text-align:center}
 #video{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .shoot{display:block;width:78px;height:78px;margin:16px auto 0;border-radius:50%;border:5px solid var(--ink);background:var(--gold);cursor:pointer}
 .badge:empty{display:none}
@@ -90,10 +95,10 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
       <canvas id="cv" width="1080" height="1440"></canvas>
       <div class="nf hide" id="nf">No et veig: posa't davant la càmera</div>
       <div class="slot hide" id="slot"><div id="slotTxt">?</div></div>
+      <button class="shoot hide" id="shoot" aria-label="Fes la foto"></button>
     </div>
     <div class="badge" id="badge"></div>
-    <button class="shoot hide" id="shoot" aria-label="Fes la foto"></button>
-    <div id="edit" class="hide">
+        <div id="edit" class="hide">
       <div class="ctrl">Mida <input id="size" type="range" min="0.15" max="0.9" step="0.01" value="0.34"></div>
       <div class="ctrl">Gir <input id="rot" type="range" min="-40" max="40" step="1" value="0"></div>
       <p class="hint">Arrossega la copa fins al teu cap. Amb dos dits també pots fer-la més gran.</p>
@@ -119,7 +124,7 @@ footer{margin-top:28px;font-size:13px;color:var(--mut);text-align:center}
 // ================= data =================
 const R=[
  {k:'classic',n:'Clàssic',w:60,c:'#f6f3ec',p:'Punts dobles a l\'app en la propera beguda.'},
- {k:'desastre',n:'Desastre',w:25,c:'#b0723f',p:'Ups! Cupó de consolació: 20% a la propera beguda.'},
+ {k:'desastre',n:'Desastre',w:25,c:'#b0723f',p:'Ups! Cupó de consolació: -30% a la propera beguda.'},
  {k:'luxe',n:'Luxe',w:12,c:'#d9c7a3',p:'Merch de la col·lecció limitada.'},
  {k:'daurat',n:'Daurat',w:3,c:'#e2b84a',p:'Cafè gratis durant un mes.'}
 ];
@@ -138,17 +143,18 @@ const CROISSANT=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 64"><p
 const POOP=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 90"><ellipse cx="50" cy="74" rx="44" ry="14" fill="#6b3f1f"/><ellipse cx="50" cy="55" rx="34" ry="13" fill="#7a4a22"/><ellipse cx="50" cy="37" rx="23" ry="11" fill="#8a5428"/><path d="M50 8 Q64 22 52 30 Q40 26 50 8Z" fill="#8a5428"/><circle cx="40" cy="54" r="6" fill="#fff"/><circle cx="60" cy="54" r="6" fill="#fff"/><circle cx="41" cy="55" r="3" fill="#111"/><circle cx="61" cy="55" r="3" fill="#111"/><path d="M40 66 Q50 74 60 66" stroke="#2a160a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
 
 const GLASSES=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 70"><defs><linearGradient id="l" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a3a44"/><stop offset=".5" stop-color="#0c0c10"/><stop offset="1" stop-color="#22222a"/></linearGradient></defs><path d="M8 14 H98 Q100 52 70 60 H38 Q8 56 8 14Z" fill="url(#l)" stroke="#e2b84a" stroke-width="5"/><path d="M122 14 H212 Q212 56 182 60 H150 Q120 52 122 14Z" fill="url(#l)" stroke="#e2b84a" stroke-width="5"/><path d="M98 20 Q110 10 122 20" stroke="#e2b84a" stroke-width="5" fill="none"/><path d="M22 22 L44 22 L30 44Z M136 22 L158 22 L144 44Z" fill="#fff" opacity=".35"/></svg>`;
+const GLASSES_GOLD=GLASSES.replace('#3a3a44','#ffe08a').replace('#0c0c10','#b8860b').replace('#22222a','#e2b84a');
 const BOUQUET=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 230"><path d="M30 92 L140 92 L92 228 L78 228Z" fill="#d8b47a"/><path d="M30 92 L85 228 L60 228Z" fill="#c29a5e"/><g fill="#2f7d4a"><ellipse cx="34" cy="78" rx="22" ry="9" transform="rotate(-30 34 78)"/><ellipse cx="138" cy="76" rx="22" ry="9" transform="rotate(30 138 76)"/><ellipse cx="86" cy="30" rx="9" ry="20"/></g><g><circle cx="58" cy="66" r="22" fill="#d7263d"/><circle cx="110" cy="64" r="22" fill="#e63e5c"/><circle cx="84" cy="44" r="22" fill="#c81d3a"/><circle cx="84" cy="84" r="20" fill="#f05a78"/></g><g fill="none" stroke="#8e1028" stroke-width="3" stroke-linecap="round"><path d="M50 62 q8-8 14 0 q-4 8-10 4"/><path d="M102 60 q8-8 14 0 q-4 8-10 4"/><path d="M76 40 q8-8 14 0 q-4 8-10 4"/><path d="M77 80 q8-8 14 0 q-4 8-10 4"/></g><path d="M66 150 Q85 136 104 150 L98 162 Q85 152 72 162Z" fill="#e2b84a"/></svg>`;
 // ================= helpers =================
 const $=id=>document.getElementById(id);
-const show=id=>['s1','s2','s3'].forEach(s=>$(s).classList.toggle('hide',s!==id));
+const show=id=>{['s1','s2','s3'].forEach(s=>$(s).classList.toggle('hide',s!==id));document.querySelector('footer').classList.toggle('hide',id==='s2');document.querySelector('main').style.paddingTop=id==='s2'?'10px':''};
 const load=src=>new Promise((ok,ko)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=ko;i.src=src});
 const svgUrl=s=>'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(s);
 const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let IMG={};Promise.all([load(svgUrl(CROISSANT)),load(svgUrl(POOP)),load(svgUrl(GLASSES)),load(svgUrl(BOUQUET))]).then(([c,p,g,b])=>IMG={c,p,g,b});
+let IMG={};Promise.all([load(svgUrl(CROISSANT)),load(svgUrl(POOP)),load(svgUrl(GLASSES)),load(svgUrl(BOUQUET)),load(svgUrl(GLASSES_GOLD))]).then(([c,p,g,b,gg])=>IMG={c,p,g,b,gg});
 
 $('hero').innerHTML=SVG.daurat.s.replace('<svg ','<svg role="img" aria-label="Copa daurada" ');
 $('nm').value=ls.get('lcf_name')||'';
@@ -196,13 +202,13 @@ const SFX={
   desastre:()=>{[392,370,349,330].forEach((f,i)=>tone(f,i*.32,i<3?.3:.9,'sawtooth',.12,i<3?null:300))},
   luxe:()=>{[1047,1319,1568,2093,2637].forEach((f,i)=>tone(f,i*.09,1.2,'triangle',.11))},
   daurat:()=>{[[523,0],[659,.12],[784,.24],[1047,.36]].forEach(([f,t])=>tone(f,t,.5,'square',.08));
-    [523,659,784,1047].forEach(f=>tone(f,.55,1.4,'triangle',.09));for(let i=0;i<10;i++)tone(rnd(1800,3200),.6+i*.08,.25,'sine',.05)}
+    [523,659,784,1047].forEach(f=>tone(f,.55,1.4,'triangle',.09));for(let i=0;i<10;i++)tone(rnd(1800,3200),.6+i*.08,.25,'sine',.05);setTimeout(()=>SFX.luxe(),1600)}
 };
 
 // ================= state =================
 const cv=$('cv'),ctx=cv.getContext('2d'),video=$('video');
 let mode='live',photo=null,cupImg=null,res=null,revealed=false,stream=null,detector=null,raf=0,lastT=-1,seen=false,running=false,curCode='',myName='';
-let cup={x:0,y:0,w:0,r:0},man={s:.34,r:0},P=[],eyes={x:0,y:0,w:0,r:0,ok:false},revealAt=0;
+let VM={sc:1,ox:0,oy:0,vw:1,vh:1},cup={x:0,y:0,w:0,r:0},man={s:.34,r:0},P=[],eyes={x:0,y:0,w:0,r:0,ok:false},revealAt=0;
 
 // ================= particles =================
 const cupTop=()=>{const ch=cup.w*cupImg.height/cupImg.width,h=ch*SVG[res.k].a;return{x:cup.x+Math.sin(cup.r)*h,y:cup.y-Math.cos(cup.r)*h,ch}};
@@ -211,7 +217,7 @@ const spawn=(n=1)=>{
   for(let i=0;i<n;i++){
     if(res.k==='classic'){const t=cupTop();P.push({t:'steam',x:t.x+rnd(-.15,.15)*cup.w,y:t.y-cup.w*.05,vx:rnd(-.3,.3)*u,vy:-rnd(1,2)*u,s:cup.w*rnd(.04,.07),life:0,max:rnd(50,80)})}
     else if(res.k==='desastre'){P.push({t:Math.random()<.5?'c':'p',x:rnd(0,W),y:-80*u,vx:rnd(-1,1)*u,vy:rnd(4,8)*u,r:rnd(0,6),vr:rnd(-.08,.08),s:rnd(90,150)*u,life:0,max:400})}
-    else if(res.k==='luxe'&&Math.random()<.35){P.push({t:'petal',x:rnd(0,W),y:-20*u,vx:rnd(-.6,.6)*u,vy:rnd(1.5,3)*u,r:rnd(0,6),vr:rnd(-.05,.05),s:rnd(12,22)*u,col:['#d7263d','#f05a78','#ffd1dc'][Math.floor(rnd(0,3))],life:0,max:700})}
+    else if(res.k==='daurat'&&Math.random()<.3){P.push({t:'petal',x:rnd(0,W),y:-20*u,vx:rnd(-.6,.6)*u,vy:rnd(1.5,3)*u,r:rnd(0,6),vr:rnd(-.05,.05),s:rnd(12,22)*u,col:['#d7263d','#f05a78','#ffd1dc'][Math.floor(rnd(0,3))],life:0,max:700})}
     else if(res.k==='luxe'){const a=rnd(0,Math.PI*2),d=cup.w*rnd(.5,1.1),t=cupTop();P.push({t:'spark',x:cup.x+Math.cos(a)*d,y:(cup.y+t.y)/2+Math.sin(a)*d,s:rnd(10,26)*u,col:Math.random()<.6?'#e2b84a':'#fff',life:0,max:rnd(30,60)})}
     else{P.push({t:'conf',x:rnd(0,W),y:-20*u,vx:rnd(-1.5,1.5)*u,vy:rnd(3,7)*u,r:rnd(0,6),vr:rnd(-.2,.2),w:rnd(10,20)*u,h:rnd(16,30)*u,col:['#e2b84a','#ffe08a','#fff','#0f5b45'][Math.floor(rnd(0,4))],life:0,max:500})}
   }
@@ -249,12 +255,13 @@ const drawCup=()=>{
 };
 const ease=t=>1-Math.pow(1-clamp(t,0,1),3);
 const drawExtras=()=>{
-  if(!revealed||!res||res.k!=='luxe'||!IMG.g)return;
+  if(!revealed||!res||(res.k!=='luxe'&&res.k!=='daurat')||!IMG.g)return;const gold=res.k==='daurat',GI=gold?IMG.gg:IMG.g;
   const W=cv.width,H=cv.height;
   // sunglasses: real eye position in live mode, estimated under the cup otherwise
   let e=eyes;if(!(mode==='live'&&eyes.ok)){const d=cup.w*.62;e={x:cup.x-Math.sin(cup.r)*d,y:cup.y+Math.cos(cup.r)*d,w:cup.w*.95,r:cup.r}}
   const k=ease((performance.now()-revealAt)/600),gh=e.w*IMG.g.height/IMG.g.width;
-  ctx.save();ctx.translate(e.x,e.y-(1-k)*H*.4);ctx.rotate(e.r);ctx.globalAlpha=k;ctx.drawImage(IMG.g,-e.w/2,-gh*.45,e.w,gh);ctx.restore();
+  ctx.save();ctx.translate(e.x,e.y-(1-k)*H*.4);ctx.rotate(e.r);ctx.globalAlpha=k;ctx.drawImage(GI,-e.w/2,-gh*.45,e.w,gh);ctx.restore();
+  if(!gold)return;
   // bouquet slides in from the bottom-right corner, as if someone hands it to you
   const bw=Math.min(W,H)*.42,bh=bw*IMG.b.height/IMG.b.width,t=ease((performance.now()-revealAt-350)/900);
   ctx.save();ctx.globalAlpha=1;ctx.translate(W-bw*.38+(1-t)*bw*1.3,H-bh*.42+(1-t)*bh*.6);ctx.rotate(-.5);ctx.drawImage(IMG.b,-bw/2,-bh/2,bw,bh);ctx.restore();
@@ -268,8 +275,11 @@ const drawLabel=()=>{
   ctx.textAlign='right';ctx.fillStyle='#e2b84a';ctx.font=`800 ${42*u}px Archivo, sans-serif`;ctx.fillText(curCode,W-48*u,H-108*u);ctx.textAlign='left';
 };
 const drawBg=()=>{
-  if(mode==='live'){if(video.readyState<2)return false;const W=cv.width=video.videoWidth,H=cv.height=video.videoHeight;
-    ctx.save();ctx.translate(W,0);ctx.scale(-1,1);ctx.drawImage(video,0,0,W,H);ctx.restore();return true}
+  if(mode==='live'){if(video.readyState<2)return false;
+    const vw=video.videoWidth,vh=video.videoHeight,H=Math.min(vh,Math.round(vw*4/3)),W=Math.round(H*3/4);
+    if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H}
+    const sc=Math.max(W/vw,H/vh);VM={sc,ox:(W-vw*sc)/2,oy:(H-vh*sc)/2,vw,vh};
+    ctx.save();ctx.translate(W,0);ctx.scale(-1,1);ctx.drawImage(video,VM.ox,VM.oy,vw*sc,vh*sc);ctx.restore();return true}
   const W=cv.width,H=cv.height;ctx.fillStyle='#000';ctx.fillRect(0,0,W,H);
   if(photo){const sc=Math.max(W/photo.width,H/photo.height),pw=photo.width*sc,ph=photo.height*sc;ctx.drawImage(photo,(W-pw)/2,(H-ph)/2,pw,ph)}
   cup.w=W*man.s;cup.r=man.r*Math.PI/180;return true;
@@ -279,11 +289,13 @@ const trackFace=()=>{
   if(detector&&video.currentTime!==lastT){
     lastT=video.currentTime;let r=null;try{r=detector.detectForVideo(video,performance.now())}catch(e){}
     const d=r&&r.detections&&r.detections[0];
-    if(d){const b=d.boundingBox,k=d.keypoints||[];const cx=W-(b.originX+b.width/2),cy=b.originY+b.height/2;
-      let ro=0;if(k.length>1){const ax=W-k[0].x*W,ay=k[0].y*H,bx=W-k[1].x*W,by=k[1].y*H;ro=Math.atan2(by-ay,bx-ax);if(Math.abs(ro)>Math.PI/2)ro+=ro>0?-Math.PI:Math.PI}
+    const mx=x=>W-(VM.ox+x*VM.sc),my=y=>VM.oy+y*VM.sc;
+    if(d){const b0=d.boundingBox,b={originX:0,originY:VM.oy+b0.originY*VM.sc,width:b0.width*VM.sc,height:b0.height*VM.sc},k=d.keypoints||[];
+      const cx=mx(b0.originX+b0.width/2),cy=my(b0.originY+b0.height/2);
+      let ro=0;if(k.length>1){const ax=mx(k[0].x*VM.vw),ay=my(k[0].y*VM.vh),bx=mx(k[1].x*VM.vw),by=my(k[1].y*VM.vh);ro=Math.atan2(by-ay,bx-ax);if(Math.abs(ro)>Math.PI/2)ro+=ro>0?-Math.PI:Math.PI}
       const dist=b.height*.95,tx=cx+Math.sin(ro)*dist,ty=cy-Math.cos(ro)*dist,tw=b.width*1.05,f=seen?.35:1;
       cup.x+=(tx-cup.x)*f;cup.y+=(ty-cup.y)*f;cup.w+=(tw-cup.w)*f;cup.r+=(ro-cup.r)*f;
-      let ex,ey,ew;if(k.length>1){const ax=W-k[0].x*W,ay=k[0].y*H,bx=W-k[1].x*W,by=k[1].y*H;ex=(ax+bx)/2;ey=(ay+by)/2;ew=Math.hypot(bx-ax,by-ay)*2.3}else{ex=cx;ey=b.originY+b.height*.38;ew=b.width*.9}
+      let ex,ey,ew;if(k.length>1){const ax=mx(k[0].x*VM.vw),ay=my(k[0].y*VM.vh),bx=mx(k[1].x*VM.vw),by=my(k[1].y*VM.vh);ex=(ax+bx)/2;ey=(ay+by)/2;ew=Math.hypot(bx-ax,by-ay)*2.3}else{ex=cx;ey=b.originY+b.height*.38;ew=b.width*.9}
       const g=eyes.ok?.35:1;eyes.x+=(ex-eyes.x)*g;eyes.y+=(ey-eyes.y)*g;eyes.w+=(ew-eyes.w)*g;eyes.r+=(ro-eyes.r)*g;eyes.ok=true;seen=true}
     if(detector)$('nf').classList.toggle('hide',!!d||!revealed);
   }
