@@ -137,6 +137,8 @@ const SVG={
 const CROISSANT=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 64"><path d="M6 46 Q14 10 50 6 Q86 10 94 46 Q84 38 74 42 Q64 26 50 26 Q36 26 26 42 Q16 38 6 46Z" fill="#d9963a"/><path d="M26 42 Q34 22 50 26 M74 42 Q66 22 50 26 M50 6 L50 26" stroke="#9c5a1c" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M14 32 Q30 14 50 12" stroke="#f3c47a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
 const POOP=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 90"><ellipse cx="50" cy="74" rx="44" ry="14" fill="#6b3f1f"/><ellipse cx="50" cy="55" rx="34" ry="13" fill="#7a4a22"/><ellipse cx="50" cy="37" rx="23" ry="11" fill="#8a5428"/><path d="M50 8 Q64 22 52 30 Q40 26 50 8Z" fill="#8a5428"/><circle cx="40" cy="54" r="6" fill="#fff"/><circle cx="60" cy="54" r="6" fill="#fff"/><circle cx="41" cy="55" r="3" fill="#111"/><circle cx="61" cy="55" r="3" fill="#111"/><path d="M40 66 Q50 74 60 66" stroke="#2a160a" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`;
 
+const GLASSES=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 70"><defs><linearGradient id="l" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a3a44"/><stop offset=".5" stop-color="#0c0c10"/><stop offset="1" stop-color="#22222a"/></linearGradient></defs><path d="M8 14 H98 Q100 52 70 60 H38 Q8 56 8 14Z" fill="url(#l)" stroke="#e2b84a" stroke-width="5"/><path d="M122 14 H212 Q212 56 182 60 H150 Q120 52 122 14Z" fill="url(#l)" stroke="#e2b84a" stroke-width="5"/><path d="M98 20 Q110 10 122 20" stroke="#e2b84a" stroke-width="5" fill="none"/><path d="M22 22 L44 22 L30 44Z M136 22 L158 22 L144 44Z" fill="#fff" opacity=".35"/></svg>`;
+const BOUQUET=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 170 230"><path d="M30 92 L140 92 L92 228 L78 228Z" fill="#d8b47a"/><path d="M30 92 L85 228 L60 228Z" fill="#c29a5e"/><g fill="#2f7d4a"><ellipse cx="34" cy="78" rx="22" ry="9" transform="rotate(-30 34 78)"/><ellipse cx="138" cy="76" rx="22" ry="9" transform="rotate(30 138 76)"/><ellipse cx="86" cy="30" rx="9" ry="20"/></g><g><circle cx="58" cy="66" r="22" fill="#d7263d"/><circle cx="110" cy="64" r="22" fill="#e63e5c"/><circle cx="84" cy="44" r="22" fill="#c81d3a"/><circle cx="84" cy="84" r="20" fill="#f05a78"/></g><g fill="none" stroke="#8e1028" stroke-width="3" stroke-linecap="round"><path d="M50 62 q8-8 14 0 q-4 8-10 4"/><path d="M102 60 q8-8 14 0 q-4 8-10 4"/><path d="M76 40 q8-8 14 0 q-4 8-10 4"/><path d="M77 80 q8-8 14 0 q-4 8-10 4"/></g><path d="M66 150 Q85 136 104 150 L98 162 Q85 152 72 162Z" fill="#e2b84a"/></svg>`;
 // ================= helpers =================
 const $=id=>document.getElementById(id);
 const show=id=>['s1','s2','s3'].forEach(s=>$(s).classList.toggle('hide',s!==id));
@@ -146,7 +148,7 @@ const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
 const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const ls={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
-let IMG={};Promise.all([load(svgUrl(CROISSANT)),load(svgUrl(POOP))]).then(([c,p])=>IMG={c,p});
+let IMG={};Promise.all([load(svgUrl(CROISSANT)),load(svgUrl(POOP)),load(svgUrl(GLASSES)),load(svgUrl(BOUQUET))]).then(([c,p,g,b])=>IMG={c,p,g,b});
 
 $('hero').innerHTML=SVG.daurat.s.replace('<svg ','<svg role="img" aria-label="Copa daurada" ');
 $('nm').value=ls.get('lcf_name')||'';
@@ -160,7 +162,8 @@ const weights=()=>mode2==='clase'?CLASS:R.map(r=>r.w);
 const COOL=60000;let waitT=0;
 const checkWait=()=>{
   clearInterval(waitT);
-  const tick=()=>{const left=mode2==='clase'?COOL-(Date.now()-(+ls.get('lcf_last')||0)):0;
+  const tick=()=>{let last=+ls.get('lcf_last')||0;if(last>Date.now()){last=Date.now()-COOL;ls.set('lcf_last',last)}
+    const left=mode2==='clase'?clamp(COOL-(Date.now()-last),0,COOL):0;
     const on=left>0;$('wait').classList.toggle('hide',!on);$('go').disabled=on;$('galbtn').classList.toggle('hide',on);
     if(on)$('wait').textContent=`Pots tornar a jugar d'aquí a ${Math.ceil(left/1000)} s`;else clearInterval(waitT)};
   tick();waitT=setInterval(tick,500);
@@ -199,7 +202,7 @@ const SFX={
 // ================= state =================
 const cv=$('cv'),ctx=cv.getContext('2d'),video=$('video');
 let mode='live',photo=null,cupImg=null,res=null,revealed=false,stream=null,detector=null,raf=0,lastT=-1,seen=false,running=false,curCode='',myName='';
-let cup={x:0,y:0,w:0,r:0},man={s:.34,r:0},P=[];
+let cup={x:0,y:0,w:0,r:0},man={s:.34,r:0},P=[],eyes={x:0,y:0,w:0,r:0,ok:false},revealAt=0;
 
 // ================= particles =================
 const cupTop=()=>{const ch=cup.w*cupImg.height/cupImg.width,h=ch*SVG[res.k].a;return{x:cup.x+Math.sin(cup.r)*h,y:cup.y-Math.cos(cup.r)*h,ch}};
@@ -208,6 +211,7 @@ const spawn=(n=1)=>{
   for(let i=0;i<n;i++){
     if(res.k==='classic'){const t=cupTop();P.push({t:'steam',x:t.x+rnd(-.15,.15)*cup.w,y:t.y-cup.w*.05,vx:rnd(-.3,.3)*u,vy:-rnd(1,2)*u,s:cup.w*rnd(.04,.07),life:0,max:rnd(50,80)})}
     else if(res.k==='desastre'){P.push({t:Math.random()<.5?'c':'p',x:rnd(0,W),y:-80*u,vx:rnd(-1,1)*u,vy:rnd(4,8)*u,r:rnd(0,6),vr:rnd(-.08,.08),s:rnd(90,150)*u,life:0,max:400})}
+    else if(res.k==='luxe'&&Math.random()<.35){P.push({t:'petal',x:rnd(0,W),y:-20*u,vx:rnd(-.6,.6)*u,vy:rnd(1.5,3)*u,r:rnd(0,6),vr:rnd(-.05,.05),s:rnd(12,22)*u,col:['#d7263d','#f05a78','#ffd1dc'][Math.floor(rnd(0,3))],life:0,max:700})}
     else if(res.k==='luxe'){const a=rnd(0,Math.PI*2),d=cup.w*rnd(.5,1.1),t=cupTop();P.push({t:'spark',x:cup.x+Math.cos(a)*d,y:(cup.y+t.y)/2+Math.sin(a)*d,s:rnd(10,26)*u,col:Math.random()<.6?'#e2b84a':'#fff',life:0,max:rnd(30,60)})}
     else{P.push({t:'conf',x:rnd(0,W),y:-20*u,vx:rnd(-1.5,1.5)*u,vy:rnd(3,7)*u,r:rnd(0,6),vr:rnd(-.2,.2),w:rnd(10,20)*u,h:rnd(16,30)*u,col:['#e2b84a','#ffe08a','#fff','#0f5b45'][Math.floor(rnd(0,4))],life:0,max:500})}
   }
@@ -215,13 +219,14 @@ const spawn=(n=1)=>{
 const star=(x,y,s)=>{ctx.beginPath();for(let i=0;i<8;i++){const a=i*Math.PI/4,r=i%2?s*.28:s;ctx.lineTo(x+Math.cos(a)*r,y+Math.sin(a)*r)}ctx.closePath();ctx.fill()};
 const stepFx=()=>{
   if(!revealed||!res||!cupImg)return;
-  if(!reduce){const rate={classic:.25,desastre:.12,luxe:.6,daurat:1.4}[res.k];let n=Math.floor(rate)+(Math.random()<rate%1?1:0);spawn(n)}
+  if(!reduce){const rate={classic:.25,desastre:.12,luxe:.9,daurat:1.4}[res.k];let n=Math.floor(rate)+(Math.random()<rate%1?1:0);spawn(n)}
   const H=cv.height;
   P=P.filter(p=>(p.life++)<p.max&&p.y<H+200);
   for(const p of P){
     const k=p.life/p.max;
     if(p.t==='steam'){p.x+=p.vx;p.y+=p.vy;ctx.globalAlpha=.35*(1-k);ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(p.x,p.y,p.s*(1+k*1.5),0,7);ctx.fill()}
     else if(p.t==='spark'){ctx.globalAlpha=Math.sin(k*Math.PI);ctx.fillStyle=p.col;star(p.x,p.y,p.s*(.6+.4*Math.sin(k*Math.PI)))}
+    else if(p.t==='petal'){p.x+=p.vx+Math.sin(p.life*.05)*.9;p.y+=p.vy;p.r+=p.vr;ctx.globalAlpha=.95;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.col;ctx.beginPath();ctx.ellipse(0,0,p.s,p.s*.6,0,0,7);ctx.fill();ctx.restore()}
     else if(p.t==='conf'){p.x+=p.vx+Math.sin(p.life*.1)*.8;p.y+=p.vy;p.r+=p.vr;ctx.globalAlpha=1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.col;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h*Math.abs(Math.cos(p.life*.15)));ctx.restore()}
     else{const im=p.t==='c'?IMG.c:IMG.p;if(!im)continue;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.globalAlpha=1;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.drawImage(im,-p.s/2,-p.s*im.height/im.width/2,p.s,p.s*im.height/im.width);ctx.restore()}
   }
@@ -241,6 +246,18 @@ const drawCup=()=>{
   if(myName){ctx.translate(0,-ch*d.a+ch*d.ny);if(d.flip)ctx.rotate(Math.PI);ctx.rotate(-.06);
     ctx.fillStyle=d.nc;ctx.textAlign='center';ctx.textBaseline='middle';ctx.font=`${cw*.15}px 'Permanent Marker', 'Comic Sans MS', cursive`;ctx.fillText(myName,0,0,cw*.62)}
   ctx.restore();
+};
+const ease=t=>1-Math.pow(1-clamp(t,0,1),3);
+const drawExtras=()=>{
+  if(!revealed||!res||res.k!=='luxe'||!IMG.g)return;
+  const W=cv.width,H=cv.height;
+  // sunglasses: real eye position in live mode, estimated under the cup otherwise
+  let e=eyes;if(!(mode==='live'&&eyes.ok)){const d=cup.w*.62;e={x:cup.x-Math.sin(cup.r)*d,y:cup.y+Math.cos(cup.r)*d,w:cup.w*.95,r:cup.r}}
+  const k=ease((performance.now()-revealAt)/600),gh=e.w*IMG.g.height/IMG.g.width;
+  ctx.save();ctx.translate(e.x,e.y-(1-k)*H*.4);ctx.rotate(e.r);ctx.globalAlpha=k;ctx.drawImage(IMG.g,-e.w/2,-gh*.45,e.w,gh);ctx.restore();
+  // bouquet slides in from the bottom-right corner, as if someone hands it to you
+  const bw=Math.min(W,H)*.42,bh=bw*IMG.b.height/IMG.b.width,t=ease((performance.now()-revealAt-350)/900);
+  ctx.save();ctx.globalAlpha=1;ctx.translate(W-bw*.38+(1-t)*bw*1.3,H-bh*.42+(1-t)*bh*.6);ctx.rotate(-.5);ctx.drawImage(IMG.b,-bw/2,-bh/2,bw,bh);ctx.restore();
 };
 const drawLabel=()=>{
   const W=cv.width,H=cv.height,u=W/1080;
@@ -265,12 +282,14 @@ const trackFace=()=>{
     if(d){const b=d.boundingBox,k=d.keypoints||[];const cx=W-(b.originX+b.width/2),cy=b.originY+b.height/2;
       let ro=0;if(k.length>1){const ax=W-k[0].x*W,ay=k[0].y*H,bx=W-k[1].x*W,by=k[1].y*H;ro=Math.atan2(by-ay,bx-ax);if(Math.abs(ro)>Math.PI/2)ro+=ro>0?-Math.PI:Math.PI}
       const dist=b.height*.95,tx=cx+Math.sin(ro)*dist,ty=cy-Math.cos(ro)*dist,tw=b.width*1.05,f=seen?.35:1;
-      cup.x+=(tx-cup.x)*f;cup.y+=(ty-cup.y)*f;cup.w+=(tw-cup.w)*f;cup.r+=(ro-cup.r)*f;seen=true}
+      cup.x+=(tx-cup.x)*f;cup.y+=(ty-cup.y)*f;cup.w+=(tw-cup.w)*f;cup.r+=(ro-cup.r)*f;
+      let ex,ey,ew;if(k.length>1){const ax=W-k[0].x*W,ay=k[0].y*H,bx=W-k[1].x*W,by=k[1].y*H;ex=(ax+bx)/2;ey=(ay+by)/2;ew=Math.hypot(bx-ax,by-ay)*2.3}else{ex=cx;ey=b.originY+b.height*.38;ew=b.width*.9}
+      const g=eyes.ok?.35:1;eyes.x+=(ex-eyes.x)*g;eyes.y+=(ey-eyes.y)*g;eyes.w+=(ew-eyes.w)*g;eyes.r+=(ro-eyes.r)*g;eyes.ok=true;seen=true}
     if(detector)$('nf').classList.toggle('hide',!!d||!revealed);
   }
   if(!seen){cup.x=W/2;cup.y=H*.3;cup.w=W*.34;cup.r=0}
 };
-const frame=()=>{if(!running)return;raf=requestAnimationFrame(frame);if(!drawBg())return;if(mode==='live')trackFace();drawCup();stepFx()};
+const frame=()=>{if(!running)return;raf=requestAnimationFrame(frame);if(!drawBg())return;if(mode==='live')trackFace();drawCup();drawExtras();stepFx()};
 const startLoop=()=>{running=true;cancelAnimationFrame(raf);frame()};
 const stopLoop=()=>{running=false;cancelAnimationFrame(raf)};
 const stopCam=()=>{if(stream)stream.getTracks().forEach(t=>t.stop());stream=null};
@@ -294,7 +313,7 @@ const badge=el=>{el.innerHTML=`<i style="background:${res.c}"></i><div><b style=
 const roll=async()=>{
   res=pick();curCode=code();if(mode2==='clase')ls.set('lcf_last',Date.now());
   revealed=false;P=[];cupImg=await load(svgUrl(SVG[res.k].s));$('badge').innerHTML='';
-  await spin(res);$('slot').classList.add('hide');revealed=true;badge($('badge'));SFX[res.k]();burst();
+  await spin(res);$('slot').classList.add('hide');revealed=true;revealAt=performance.now();badge($('badge'));SFX[res.k]();burst();
 };
 const begin=()=>{unlock();myName=$('nm').value.trim();ls.set('lcf_name',myName)};
 
@@ -330,7 +349,7 @@ cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
 // ================= result =================
 let blob=null;
 const finish=()=>{
-  stopLoop();drawBg();drawCup();
+  stopLoop();drawBg();drawCup();revealAt=-1e6;drawExtras();
   if(res.k==='daurat'||res.k==='desastre'){for(const p of P)p.life=Math.min(p.life,p.max-2)} // keep particles visible in the photo
   stepFx();drawLabel();tone(1600,0,.06,'square',.08);
   cv.toBlob(b=>{
